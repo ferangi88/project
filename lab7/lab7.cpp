@@ -16,12 +16,16 @@ int main(int argc, char *argv[])
 	unsigned char buffer2[1024];
 	unsigned char buffer3[1024];
 
-	for(int i = 0; i < 1024; i++)
+	memset(buffer,0,sizeof(buffer));
+	memset(buffer2,0,sizeof(buffer2));
+	memset(buffer3,0,sizeof(buffer3));
+
+	/*for(int i = 0; i < 1024; i++)
 	{
 		buffer[i] = 0;
 		buffer2[i] = 0;
 		buffer3[i] = 0;
-	}
+	}*/
 
 	BIO *binfile, *boutfile, *hash, *privateKey, *publicKey, *hash_sig;
 	binfile = BIO_new_file(infilename, "r");		//file to read ("r")
@@ -56,18 +60,25 @@ int main(int argc, char *argv[])
 	}
 	printf("\n");
 
+	int encrypt_size = 0;
 	RSA * rsa_private = PEM_read_bio_RSAPrivateKey(privateKey, NULL, NULL, NULL);
-	RSA_private_encrypt(EVP_MAX_MD_SIZE, (const unsigned char *) mdbuf, buffer2, rsa_private, RSA_PKCS1_PADDING);
+	encrypt_size = RSA_private_encrypt(EVP_MAX_MD_SIZE, (unsigned char *) mdbuf, buffer2, rsa_private, RSA_PKCS1_PADDING);
 
-	for(int i = 0; i < mdlen; i++)
+	for(int i = 0; i < encrypt_size; i++)
 	{
 		//Print two hexadecimal digits (8 bits or 1 character) at a time
 		printf("%02x", buffer2[i] & 0xFF);
 	}
 	printf("\n");
+/*
+  	FILE * pFile;
+  	pFile = fopen ( hash_code_sig , "w" );
+  	fwrite (buffer2 , 1 , sizeof(buffer2) , pFile );
+  	fclose (pFile);
+*/
 
 	RSA * rsa_public = PEM_read_bio_RSA_PUBKEY(publicKey, NULL, NULL, NULL);
-	RSA_public_decrypt(EVP_MAX_MD_SIZE, buffer2, buffer3, rsa_public, RSA_PKCS1_PADDING);
+	RSA_public_decrypt(encrypt_size, (unsigned char *)buffer2, buffer3, rsa_public, RSA_PKCS1_PADDING);
 
 	for(int i = 0; i < mdlen; i++)
 	{
@@ -79,14 +90,6 @@ int main(int argc, char *argv[])
 	//BIO_free_all(binfile);
 	//BIO_free_all(boutfile);
 	//BIO_free_all(hash);
-
-	/*char ebu[256];
-	int err;
-	while((err == ERR_get_error()) != 0)
-	{
-		ERR_error_string_n(err, ebu, sizeof(ebu) );
-		printf("*** %s\n", buf);
-	}*/
 
 	return 0;
 }
