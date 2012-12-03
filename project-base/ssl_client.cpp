@@ -15,6 +15,7 @@ using namespace std;
 #include <openssl/pem.h>	// For reading .pem files for RSA keys
 #include <openssl/err.h>	// ERR_get_error()
 #include <openssl/dh.h>		// Diffie-Helman algorithms & libraries
+#include <openssl/rand.h>	// Used for the random challenge
 
 #include "utils.h"
 
@@ -92,28 +93,72 @@ int main(int argc, char** argv)
 	// 2. Send the server a random number
 	printf("2.  Sending challenge to the server...");
     
-    string randomNumber="31337";
+	//create the random number generator
+	RAND_load_file("/dev/random", 128);
+
+	unsigned char randNum[20];
+	memset(randNum, 0, sizeof(randNum));
+	int rtest = RAND_bytes(randNum, 20);
+	
+	if(rtest == 0)
+	{
+		printf("not enough random seed");
+		exit(0);
+	}
+	
+    //string randomNumber="31337";
 
 	//SSL_write
-	SSL_write(ssl, randomNumber.c_str(), sizeof(randomNumber.c_str()));
+	//SSL_write(ssl, randomNumber.c_str(), strlen(randomNumber.c_str()));
+	SSL_write(ssl, randNum, sizeof(randNum));
     
     printf("SUCCESS.\n");
-	printf("    (Challenge sent: \"%s\")\n", randomNumber.c_str());
+	//printf("    (Challenge sent: \"%s\")\n", randomNumber.c_str());
+	printf("    (Challenge sent: \"%s\")\n", buff2hex((const unsigned char*)randNum, 20).c_str() );
 
     //-------------------------------------------------------------------------
 	// 3a. Receive the signed key from the server
 	printf("3a. Receiving signed key from server...");
 
-    char* buff="FIXME";
-    int len=5;
+	int len = 0;
+	char key_buf[1024];
+	memset(key_buf, 0, sizeof(key_buf));
+
 	//SSL_read;
+	len = SSL_read(ssl, key_buf, 1024);
 
 	printf("RECEIVED.\n");
-	printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)buff, len).c_str(), len);
+	printf("    (Signature: \"%s\" (%d bytes))\n", /*buff2hex((const unsigned char*)*/key_buf/*, len).c_str()*/, len);
+	//printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)buff, len).c_str(), len);
 
     //-------------------------------------------------------------------------
 	// 3b. Authenticate the signed key
 	printf("3b. Authenticating key...");
+
+	BIO *chal, *hash;
+
+	//BIO_new(BIO_s_mem());
+	//BIO_write
+	chal = BIO_new(BIO_s_mem());
+	BIO_puts(chal, (const char *)randNum);
+
+	//BIO_new(BIO_f_md());
+	hash = BIO_new(BIO_f_md());
+
+	//BIO_set_md;
+	BIO_set_md(hash, EVP_sha1());
+
+	//BIO_push;
+	BIO_push(hash, chal);
+
+	//BIO_gets;
+
+    int mdlen=0;
+
+	//Get digest - generated key
+	char hash_string[EVP_MAX_MD_SIZE];
+	memset(hash_string, 0, sizeof(hash_string));
+	mdlen = BIO_gets(hash, hash_string, EVP_MAX_MD_SIZE);
 
 	//BIO_new(BIO_s_mem())
 	//BIO_write
@@ -122,11 +167,12 @@ int main(int argc, char** argv)
 	//RSA_public_decrypt
 	//BIO_free
 	
-	string generated_key="";
+	//string generated_key="";
 	string decrypted_key="";
     
 	printf("AUTHENTICATED\n");
-	printf("    (Generated key: %s)\n", generated_key.c_str());
+	printf("    (Generated key: %s)\n", buff2hex((const unsigned char*) hash_string, mdlen).c_str() );
+	//printf("    (Generated key: %s)\n", generated_key.c_str());
 	printf("    (Decrypted key: %s)\n", decrypted_key.c_str());
 
     //-------------------------------------------------------------------------
@@ -137,6 +183,7 @@ int main(int argc, char** argv)
 	//BIO_flush
     //BIO_puts
 	//SSL_write
+	SSL_write(ssl, filename, strlen(filename));
 
     printf("SENT.\n");
 	printf("    (File requested: \"%s\")\n", filename);
@@ -149,6 +196,9 @@ int main(int argc, char** argv)
     //SSL_read
 	//BIO_write
 	//BIO_free
+
+	//while(ssl_read)
+		//append to file
 
 	printf("FILE RECEIVED.\n");
 
