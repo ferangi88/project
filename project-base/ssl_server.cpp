@@ -147,20 +147,18 @@ int main(int argc, char** argv)
 	printf("4. Signing the key...");
 
 	char privKey[] = "rsaprivatekey.pem";
-	char pubKey[] = "rsapublickey.pem";
-printf("test1\n");
-	BIO *privateKey, *publicKey;
+
+	BIO *privateKey;
 	privateKey = BIO_new_file(privKey, "r");
-	publicKey = BIO_new_file(pubKey, "r");
-printf("test2\n");
+
 	int siglen=0;
 	//char * signature ="FIXSignatureFromServer";
-    unsigned char* signature;//[1024];
-	//memset(signature, 0, sizeof(signature));
-	printf("test3\n");
+    unsigned char signature[128];
+	memset(signature, 0, sizeof(signature));
+
 	//PEM_read_bio_RSAPrivateKey
 	RSA * rsa_private = PEM_read_bio_RSAPrivateKey(privateKey, NULL, NULL, NULL);
-printf("test4\n");
+
 	//RSA_private_encrypt
 	siglen = RSA_private_encrypt(mdlen, (unsigned char *) hash_string, signature, rsa_private, RSA_PKCS1_PADDING);
 

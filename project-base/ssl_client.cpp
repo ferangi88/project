@@ -128,7 +128,7 @@ int main(int argc, char** argv)
 	len = SSL_read(ssl, key_buf, 1024);
 
 	printf("RECEIVED.\n");
-	printf("    (Signature: \"%s\" (%d bytes))\n", /*buff2hex((const unsigned char*)*/key_buf/*, len).c_str()*/, len);
+	printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)key_buf, len).c_str(), len);
 	//printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)buff, len).c_str(), len);
 
     //-------------------------------------------------------------------------
@@ -160,20 +160,31 @@ int main(int argc, char** argv)
 	memset(hash_string, 0, sizeof(hash_string));
 	mdlen = BIO_gets(hash, hash_string, EVP_MAX_MD_SIZE);
 
-	//BIO_new(BIO_s_mem())
-	//BIO_write
-	//BIO_new_file
-	//PEM_read_bio_RSA_PUBKEY
-	//RSA_public_decrypt
-	//BIO_free
+	unsigned char decrypt_key[mdlen];
+	memset(decrypt_key, 0, sizeof(decrypt_key));
+
+	//get encrypted message
+	char pubKey[] = "rsapublickey.pem";
+
+	BIO *publicKey;
 	
-	//string generated_key="";
-	string decrypted_key="";
+	//BIO_new_file
+	publicKey = BIO_new_file(pubKey, "r");
+
+	//PEM_read_bio_RSA_PUBKEY
+	RSA * rsa_public = PEM_read_bio_RSA_PUBKEY(publicKey, NULL, NULL, NULL);
+	
+	//RSA_public_decrypt
+	RSA_public_decrypt(len, (unsigned char *)key_buf, decrypt_key, rsa_public, RSA_PKCS1_PADDING);
+
+	//BIO_free
+	BIO_free(hash);
     
 	printf("AUTHENTICATED\n");
 	printf("    (Generated key: %s)\n", buff2hex((const unsigned char*) hash_string, mdlen).c_str() );
+	printf("    (Decrypted key: %s)\n", buff2hex((const unsigned char*) decrypt_key, mdlen).c_str() );
 	//printf("    (Generated key: %s)\n", generated_key.c_str());
-	printf("    (Decrypted key: %s)\n", decrypted_key.c_str());
+	//printf("    (Decrypted key: %s)\n", decrypted_key.c_str());
 
     //-------------------------------------------------------------------------
 	// 4. Send the server a file request
