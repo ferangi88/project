@@ -129,8 +129,6 @@ int main(int argc, char** argv)
 	//BIO_push;
 	BIO_push(hash, chal);
 
-	//BIO_gets;
-
     int mdlen=0;
 
 	//Get digest
@@ -153,8 +151,8 @@ int main(int argc, char** argv)
 	privateKey = BIO_new_file(privKey, "r");
 
 	int siglen=0;
-	//char * signature ="FIXSignatureFromServer";
-    unsigned char signature[128];
+
+    unsigned char signature[1024];
 	memset(signature, 0, sizeof(signature));
 
 	//PEM_read_bio_RSAPrivateKey
@@ -174,7 +172,7 @@ int main(int argc, char** argv)
 	//BIO_flush
 	BIO_flush(hash);
 	//SSL_write
-	SSL_write(ssl, signature, sizeof(signature));
+	SSL_write(ssl, signature, siglen);
 
     printf("DONE.\n");
     
@@ -187,6 +185,7 @@ int main(int argc, char** argv)
     memset(file,0,sizeof(file));
 	string rFile;
 
+	//receive filename to send
 	buf_len = SSL_read(ssl, file, 1024);
 
 	rFile.assign(file);
@@ -194,27 +193,33 @@ int main(int argc, char** argv)
     printf("RECEIVED.\n");
     printf("    (File requested: \"%s\"\n", file);
 
+	//check to see if file is available
+	if(rFile != "Louton.txt")
+	{
+		if(rFile != "tester.txt")
+		{
+			printf("File not available. Closing connection...");
+
+			//SSL_shutdown
+			SSL_shutdown(ssl);
+
+    		//BIO_reset
+    		printf("DONE.\n");
+			return 0;
+		}
+	}
+
     //-------------------------------------------------------------------------
 	// 7. Send the requested file back to the client (if it exists)
 	printf("7. Attempting to send requested file to client...");
 
 	PAUSE(2);
-	//BIO_flush
-	//BIO_new_file
-	//BIO_puts(server, "fnf");
-    //BIO_read(bfile, buffer, BUFFER_SIZE)) > 0)
-	//SSL_write(ssl, buffer, bytesRead);
-
-	//while(stream >> buffer)
-		//ssl_write(buffer)
 
 	const char * inFile = rFile.c_str();
 
-	BIO *iFile;//, *ibuf;
+	//load the requested file
+	BIO *iFile;
 	iFile = BIO_new_file(inFile, "r");
-	//ibuf = BIO_new(BIO_f_buffer( ));
-
-	//BIO_push(ibuf, iFile);
 
     int bytesSent=0;
 
@@ -223,18 +228,23 @@ int main(int argc, char** argv)
 
     int contents;
 
-	//contents = BIO_read(ibuf, fbuf, 10);
-	//cout << "read" << endl;
-	//BIO_flush(ibuf);
+	int enclen=0;
+    unsigned char encr[1024];
+	memset(encr, 0, sizeof(encr));
 
+	//send requested file
 	while( (contents = BIO_read(iFile, fbuf, 1024)) >= 1 )
 	{
 		//cout << "inside" << endl;
 		bytesSent += contents;
 
-		SSL_write(ssl, fbuf, sizeof(fbuf));
+		//RSA_private_encrypt
+		//enclen = RSA_private_encrypt(contents, (unsigned char *) fbuf, encr, rsa_private, RSA_PKCS1_PADDING);
+
+		//SSL_write(ssl, encr, 1024);
+		SSL_write(ssl, fbuf, contents);
     	memset(fbuf,0,sizeof(fbuf));
-		//BIO_flush(ibuf);
+		//memset(encr, 0, sizeof(encr));
 	}
     
     printf("SENT.\n");

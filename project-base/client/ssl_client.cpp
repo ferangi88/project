@@ -127,7 +127,6 @@ int main(int argc, char** argv)
 
 	printf("RECEIVED.\n");
 	printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)key_buf, len).c_str(), len);
-	//printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)buff, len).c_str(), len);
 
     //-------------------------------------------------------------------------
 	// 3b. Authenticate the signed key
@@ -178,7 +177,6 @@ int main(int argc, char** argv)
 	string generated_key;
 	string decrypted_key;
 
-
 	generated_key.assign( buff2hex((const unsigned char*) hash_string, mdlen) );
 	decrypted_key.assign( buff2hex((const unsigned char*) decrypt_key, mdlen) );
 
@@ -211,16 +209,10 @@ int main(int argc, char** argv)
 
     //-------------------------------------------------------------------------
 	// 5. Receives and displays the contents of the file requested
-	printf("5.  Receiving response from server...");
+	printf("5.  Receiving response from server...\nFile Contents:\n");
 
-    //BIO_new_file
-    //SSL_read
-	//BIO_write
-	//BIO_free
 
-	//while(ssl_read)
-		//append to file
-
+	//prepare file to write received file to
 	char * outfilename = "ReceivedFile.txt";
 
 	BIO *boutfile;
@@ -229,11 +221,22 @@ int main(int argc, char** argv)
 	char fbuf[1024];
     memset(fbuf,0,sizeof(fbuf));
 
-	int actualRead, actualWritten;
+	int declen=0;
+    unsigned char decr[1024];
+	memset(decr, 0, sizeof(decr));
 
-	while( (actualRead = SSL_read(ssl, fbuf, 1024)) >= 1)
+	int rLen, wLen;
+
+	//recieve the file
+	while( (rLen = SSL_read(ssl, fbuf, 1024)) >= 1)
 	{
-		actualWritten = BIO_write(boutfile, buff2hex((const unsigned char*) fbuf, actualRead).c_str(), actualRead);
+		//RSA_public_decrypt
+		//RSA_public_decrypt(rLen, (unsigned char *)fbuf, decr, rsa_public, RSA_PKCS1_PADDING);
+
+		//wLen = BIO_write(boutfile, decr, rLen);
+		wLen = BIO_write(boutfile, fbuf, rLen);
+		printf("%s", decr);
+
 		BIO_flush(boutfile);
 	}
 

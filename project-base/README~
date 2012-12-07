@@ -1,0 +1,7 @@
+Commands to run Program:
+
+Server: "server portNumber"
+Client: "client serverAddress:portNumber filename"
+
+To compile program:
+	In each folder (server, client) type "make".  A makefile was included to compile the files.  The file requests right now that are accepted are "Louton.txt" and "tester.txt".  Tester.txt was take from online and at the end of the file has the website the content was taken from.
