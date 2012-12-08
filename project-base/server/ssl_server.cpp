@@ -151,7 +151,6 @@ int main(int argc, char** argv)
 	privateKey = BIO_new_file(privKey, "r");
 
 	int siglen=0;
-
     unsigned char signature[1024];
 	memset(signature, 0, sizeof(signature));
 
@@ -233,18 +232,18 @@ int main(int argc, char** argv)
 	memset(encr, 0, sizeof(encr));
 
 	//send requested file
-	while( (contents = BIO_read(iFile, fbuf, 1024)) >= 1 )
+	while( (contents = BIO_read(iFile, fbuf, 64)) >= 1 )
 	{
-		//cout << "inside" << endl;
 		bytesSent += contents;
 
 		//RSA_private_encrypt
-		//enclen = RSA_private_encrypt(contents, (unsigned char *) fbuf, encr, rsa_private, RSA_PKCS1_PADDING);
+		enclen = RSA_private_encrypt(contents, (unsigned char *) fbuf, encr, rsa_private, RSA_PKCS1_PADDING);
+print_errors();
 
-		//SSL_write(ssl, encr, 1024);
-		SSL_write(ssl, fbuf, contents);
+		SSL_write(ssl, encr, enclen);
+		//SSL_write(ssl, fbuf, contents);
     	memset(fbuf,0,sizeof(fbuf));
-		//memset(encr, 0, sizeof(encr));
+		memset(encr, 0, sizeof(encr));
 	}
     
     printf("SENT.\n");

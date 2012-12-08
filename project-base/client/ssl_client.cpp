@@ -107,11 +107,9 @@ int main(int argc, char** argv)
 	}
 
 	//SSL_write
-	//SSL_write(ssl, randomNumber.c_str(), strlen(randomNumber.c_str()));
 	SSL_write(ssl, randNum, sizeof(randNum));
     
     printf("SUCCESS.\n");
-	//printf("    (Challenge sent: \"%s\")\n", randomNumber.c_str());
 	printf("    (Challenge sent: \"%s\")\n", buff2hex((const unsigned char*)randNum, sizeof(randNum) ).c_str() );
 
     //-------------------------------------------------------------------------
@@ -148,13 +146,12 @@ int main(int argc, char** argv)
 	//BIO_push;
 	BIO_push(hash, chal);
 
-	//BIO_gets;
-
     int mdlen=0;
 
 	//Get digest - generated key
 	char hash_string[EVP_MAX_MD_SIZE];
 	memset(hash_string, 0, sizeof(hash_string));
+	//BIO_gets;
 	mdlen = BIO_gets(hash, hash_string, EVP_MAX_MD_SIZE);
 
 	unsigned char decrypt_key[mdlen];
@@ -190,17 +187,23 @@ int main(int argc, char** argv)
 	if(generated_key == decrypted_key)
 		printf("    SERVER AUTHENTICATED\n");
 	else
+	{
 		printf("    SERVER NOT AUTHENTICATED\n");
-	//printf("    (Generated key: %s)\n", generated_key.c_str());
-	//printf("    (Decrypted key: %s)\n", decrypted_key.c_str());
+		printf("Closing the connection...");
+
+		//SSL_shutdown
+		SSL_shutdown(ssl);
+	
+		printf("DONE.\n");
+		return 0;
+	}
 
     //-------------------------------------------------------------------------
 	// 4. Send the server a file request
 	printf("4.  Sending file request to server...");
 
 	PAUSE(2);
-	//BIO_flush
-    //BIO_puts
+
 	//SSL_write
 	SSL_write(ssl, filename, strlen(filename));
 
@@ -231,16 +234,18 @@ int main(int argc, char** argv)
 	while( (rLen = SSL_read(ssl, fbuf, 1024)) >= 1)
 	{
 		//RSA_public_decrypt
-		//RSA_public_decrypt(rLen, (unsigned char *)fbuf, decr, rsa_public, RSA_PKCS1_PADDING);
+		declen = RSA_public_decrypt(rLen, (unsigned char *)fbuf, decr, rsa_public, RSA_PKCS1_PADDING);
 
-		//wLen = BIO_write(boutfile, decr, rLen);
-		wLen = BIO_write(boutfile, fbuf, rLen);
+		wLen = BIO_write(boutfile, decr, declen);
+		//wLen = BIO_write(boutfile, fbuf, rLen);
 		printf("%s", decr);
 
+    	memset(fbuf,0,sizeof(fbuf));
+		memset(decr,0,sizeof(decr));
 		BIO_flush(boutfile);
 	}
 
-	printf("FILE RECEIVED.\n");
+	printf("\nFILE RECEIVED.\n");
 
     //-------------------------------------------------------------------------
 	// 6. Close the connection
